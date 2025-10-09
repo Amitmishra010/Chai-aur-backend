@@ -15,4 +15,16 @@ app.use(express.urlencoded({extended:true,limit:"16kb"}))
 //kayi baar ham kuch files,folder ya image ko local server per store karna chahte hai ki ye public assets hai
 app.use(express.static("public")) 
 app.use(cookieParser())
+
+
+//routes
+import userRouter from "./routes/user.routes.js"
+
+//routes declaration
+//app.use("/user",userRouter)//--> //yahan ke baad control seedhe pass ho gya hai user.routes me ab agar login karna ho to yahan kuch nahi karna change user.routes me karna hai
+//dusra achi practice ye hai ki agar aap api define kar rahe hai to batana padta hai ki aap define kar rahe hai and versoning kya hai
+app.use("/api/v1/user",userRouter)
+
+
+
 export {app}

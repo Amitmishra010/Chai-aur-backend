@@ -1,7 +1,7 @@
 //require('dotenv').config({path: './env}) //isse bhi kaam chal jayega kyuki ham chahte hai jab app load ho jitni jaldi ho sake hamare environment variable har jagah available ho jaye
 //2nd approach
 import dotenv from "dotenv" //phir config kar do
-
+import { app } from "./app.js";
 
 import connectDb from "./db/index.js";
 

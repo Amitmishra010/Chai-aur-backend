@@ -1,6 +1,6 @@
  const asyncHandler=(requestHandler)=>{
-// //promises wala bhi ho skta hai aur try catch wala bhi ham promises wala use karenge
-    (req,res,next)=>{
+// //promises wala bhi ho skta hai aur try catch wala bhi ham promises wala use karenge//return karna bhul gya tha
+    return (req,res,next)=>{
         Promise.resolve(requestHandler(req,res,next)).catch((err)=>next(err))
     }
  }
