@@ -56,7 +56,7 @@ userSchema.pre("save", async function (next){
 //ab encrypt karenge kyuki user ki sari field ka access hai hamare pass
 //neeche wali line se jab user koi change karke save karega har baar password change ho jayega isliye ek if condition aayegi
 if(this.isModified("password"))
-this.password=bcrypt.hash(this.password,10)
+this.password=await bcrypt.hash(this.password,10)
 next()
 })
 userSchema.methods.isPasswordCorrect=async function (password){
