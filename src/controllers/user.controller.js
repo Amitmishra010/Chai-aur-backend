@@ -4,6 +4,8 @@ import { User } from "../models/user.model.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
+import { Subscription } from "../models/subscription.model.js"
+import mongoose from "mongoose"
 const generateAccessandRefreshToken=async (userId)=>{
     try {
       const user=  await User.findById(userId)
@@ -276,7 +278,118 @@ const updateUserCoverImage=asyncHandler(async(req,res)=>{
         new ApiResponse(200,user,"cover image updated successfully")
     )
 })
+const getUserChannelProfile=asyncHandler(async(req,res)=>{
+    const {username}=req.params//jab hame kisi channel ki profile chahiye hoti hai to ham us channel ke url pe jate hai ->user.params
+    if(!username?.trim()){
+        throw new ApiError(400,"username is missing")
+    }
+   const channel= await User.aggregate([//aggregation ke baad data hame array me milta hai
+    //first pipeline
+    {
+        $match:{
+            username:username?.toLowerCase()
+        }
+    },
+    {
+        $lookup:{
+            from:"subscriptions",
+            localField:"_id",
+            foreignField:"channel",
+            as:"subscribers"
+        }
+    },
+    {
+        $lookup:{
+             from:"subscriptions",
+            localField:"_id",
+            foreignField:"subscriber",
+            as:"subscribedTo"
+        }
+    },
+//yahan tak dono field hamare pass aa chuke hai ab hame dono ko add bhi karna hai
+    {
+        $addFields:{
+            subscribersCount:{
+                $size:"$subscribers"//iske sath $ use karna hai kyuki ye field hai ab
+            },
+            channelsSubscribedToCount:{
+                $size:"$subscribedTo"
+            },
+            isSubscribed:{
+                $cond:{
+                    if:{$in:[req.user?._id,"$subscribers.subscriber"]},
+                    then:true,
+                    else:false
+                }
+            }
+        }
+    },
+    {
+        $project:{
+            fullname:1,
+            username:1,
+            subscribersCount:1,
+            channelsSubscribedToCount:1,
+            isSubscribed:1,
+            avatar:1,
+            coverImage:1
+        }
+    }
 
+   ])
+   console.log("channel",channel);
+   if(!channel?.length){
+    throw new ApiError(404,"channel does not exist")
+   }
+   return res.status(200)
+   .json(new ApiResponse(200,channel[0],"user channel fetched successfully"))
+})
+const getWatchHistory=asyncHandler(async (req,res)=>{
+    const user=await User.aggregate([
+        {
+            $match:{
+                _id:new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup:{
+                from:"videos",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchHistory" ,
+                //yahan tak ab hamare paas bahut sare documents(videos) aa chuke honge ,aur ab ownners ke liye subpipeline lagayenge(nested)
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",
+                            pipeline:[
+                                {
+                                    $project:{
+                                        fullname:1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                                $first:"$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+    return res.status(200)
+    .json(new ApiResponse(200,user[0].watchHistory,"watch history fetched successfully"))
+})
 export {
     registerUser,
     loginUser,
@@ -286,6 +399,8 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile,
+    getWatchHistory
 }
 //aap directly file handle nahi kar sakte ,data kar sakte hai handle
